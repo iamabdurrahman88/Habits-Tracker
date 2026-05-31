@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyStreak — Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131c;
+    --surface2: #1c1c2e;
+    --border: #2a2a3d;
+    --accent: #7c6af7;
+    --accent2: #e06bf7;
+    --green: #4ade80;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --gold: #fbbf24;
+    --blue: #60a5fa;
+    --pink: #f472b6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,247,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,247,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .glow-orb { position: fixed; width: 500px; height: 500px; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; opacity: 0.12; }
+  .glow-orb.one { background: var(--accent); top: -100px; right: -100px; }
+  .glow-orb.two { background: var(--green); bottom: -100px; left: -100px; }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* NAV */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .logo {
+    font-size: 26px; font-weight: 800; letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-decoration: none;
+  }
+
+  .nav-links { display: flex; gap: 8px; }
+
+  .nav-link {
+    padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; text-decoration: none; transition: all 0.2s; display: inline-block;
+  }
+  .nav-link:hover { border-color: var(--accent); color: var(--text); }
+  .nav-link.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* SECTION TITLES */
+  .section-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--muted); margin-bottom: 16px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* SUMMARY CARDS */
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 40px;
+  }
+
+  .sum-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 14px; text-align: center;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+  .sum-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  .sum-val {
+    font-size: 30px; font-weight: 800; line-height: 1; margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .sum-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* CHART CARDS */
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; margin-bottom: 24px;
+    transition: border-color 0.3s;
+  }
+  .chart-card:hover { border-color: var(--border); }
+
+  .chart-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+  }
+
+  .chart-title { font-size: 16px; font-weight: 700; }
+  .chart-sub { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+  .chart-tabs { display: flex; gap: 6px; }
+  .chart-tab {
+    padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .chart-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .chart-wrap { position: relative; height: 240px; }
+
+  /* HEATMAP */
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: 32px repeat(53, 1fr);
+    gap: 3px;
+    margin-top: 8px;
+    overflow-x: auto;
+  }
+
+  .hm-label {
+    font-size: 9px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    display: flex; align-items: center;
+  }
+
+  .hm-cell {
+    width: 100%; aspect-ratio: 1;
+    border-radius: 3px;
+    background: var(--surface2);
+    transition: transform 0.1s;
+    cursor: pointer;
+    position: relative;
+  }
+  .hm-cell:hover { transform: scale(1.3); z-index: 10; }
+  .hm-cell.l1 { background: rgba(74,222,128,0.2); }
+  .hm-cell.l2 { background: rgba(74,222,128,0.45); }
+  .hm-cell.l3 { background: rgba(74,222,128,0.7); }
+  .hm-cell.l4 { background: rgba(74,222,128,1); }
+  .hm-cell.future { opacity: 0.2; cursor: default; }
+
+  /* SUBJECT BREAKDOWN */
+  .breakdown-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+
+  .subject-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px;
+    transition: border-color 0.3s;
+  }
+  .subject-card:hover { border-color: var(--accent2); }
+
+  .subject-name { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+
+  .task-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .task-name { font-size: 11px; color: var(--muted); }
+  .task-bar-wrap { flex: 1; margin: 0 10px; height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .task-bar-fill { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1); }
+  .task-pct { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--muted); min-width: 28px; text-align: right; }
+
+  /* TOOLTIP */
+  .hm-tooltip {
+    position: fixed; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; font-size: 12px;
+    pointer-events: none; z-index: 100; display: none;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* NO DATA */
+  .no-data {
+    text-align: center; padding: 48px; color: var(--muted);
+    font-size: 14px;
+  }
+  .no-data a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 680px) {
+    .summary-grid { grid-template-columns: repeat(3, 1fr); }
+    .breakdown-grid { grid-template-columns: 1fr; }
+    .chart-wrap { height: 200px; }
+  }
+</style>
+</head>
+<body>
+<div class="glow-orb one"></div>
+<div class="glow-orb two"></div>
+<div class="hm-tooltip" id="hmTooltip"></div>
+
+<div class="wrapper">
+  <nav>
+    <a class="logo" href="study-tracker.html">StudyStreak ⚡</a>
+    <div class="nav-links">
+      <a class="nav-link" href="study-tracker.html">📋 Tracker</a>
+      <a class="nav-link active" href="#">📊 Analytics</a>
+    </div>
+  </nav>
+
+  <!-- SUMMARY -->
+  <div class="section-title">All-time summary</div>
+  <div class="summary-grid" id="summaryGrid"></div>
+
+  <!-- WEEKLY CHART -->
+  <div class="section-title">Weekly view</div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Tasks Completed</div>
+        <div class="chart-sub" id="weekRange"></div>
+      </div>
+      <div class="chart-tabs">
+        <button class="chart-tab active" onclick="setWeekOffset(0,this)">This week</button>
+        <button class="chart-tab" onclick="setWeekOffset(-1,this)">Last week</button>
+        <button class="chart-tab" onclick="setWeekOffset(-2,this)">2w ago</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="weeklyChart"></canvas></div>
+  </div>
+
+  <!-- MONTHLY CHART -->
+  <div class="section-title">Monthly view</div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Daily Completion %</div>
+        <div class="chart-sub" id="monthLabel"></div>
+      </div>
+      <div class="chart-tabs">
+        <button class="chart-tab active" onclick="setMonthOffset(0,this)">This month</button>
+        <button class="chart-tab" onclick="setMonthOffset(-1,this)">Last month</button>
+        <button class="chart-tab" onclick="setMonthOffset(-2,this)">2m ago</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="monthlyChart"></canvas></div>
+  </div>
+
+  <!-- TASK BREAKDOWN -->
+  <div class="section-title">Task breakdown — last 30 days</div>
+  <div class="breakdown-grid" id="breakdownGrid"></div>
+
+  <!-- HEATMAP -->
+  <div class="section-title">Activity heatmap — last 12 weeks</div>
+  <div class="chart-card">
+    <div id="heatmapContainer"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── READ DATA ─────────────────────────────────────────────────────────────
+const state = JSON.parse(localStorage.getItem('studystreak') || '{}');
+const subjects = state.subjects || [];
+const topics = state.topics || {};
+const checks = state.checks || {};
+const WEEKDAY_TASKS = ['Lecture','HW','DPP'];
+const SUNDAY_TASKS  = ['Sheet 1','Sheet 2','Sheet 3','Sheet 4'];
+const TASK_COLORS = ['#60a5fa','#f472b6','#fbbf24','#a78bfa'];
+
+function isSunday(dateKey) { return new Date(dateKey + 'T00:00:00').getDay() === 0; }
+function tasksForDate(dateKey) { return isSunday(dateKey) ? SUNDAY_TASKS : WEEKDAY_TASKS; }
+// For breakdown/charts, use weekday tasks as primary display
+const TASKS = WEEKDAY_TASKS;
+
+// ─── HELPERS ───────────────────────────────────────────────────────────────
+function pad(n){ return String(n).padStart(2,'0'); }
+function dateToKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function todayKey(){ const d=new Date(); return dateToKey(d); }
+
+function getDayStats(dateKey) {
+  const dayChecks = checks[dateKey] || {};
+  const DAY_TASKS = tasksForDate(dateKey);
+  let done=0, total=0;
+  const byTask = {};
+  const bySubject = {};
+  DAY_TASKS.forEach(t => { byTask[t]=[0,0]; });
+
+  subjects.forEach(s => {
+    const ts = topics[s] || [];
+    let sDone=0, sTotal=0;
+    ts.forEach(t => {
+      DAY_TASKS.forEach(task => {
+        total++; sTotal++;
+        byTask[task][1]++;
+        if(dayChecks[t.id]?.[task]){ done++; sDone++; byTask[task][0]++; }
+      });
+    });
+    bySubject[s] = {done:sDone, total:sTotal, pct: sTotal>0?Math.round(sDone/sTotal*100):0};
+  });
+
+  return { done, total, pct: total>0 ? Math.round(done/total*100) : 0, byTask, bySubject, isSunday: isSunday(dateKey) };
+}
+
+// get range of dates
+function dateRange(startD, count) {
+  return Array.from({length:count}, (_,i)=>{
+    const d = new Date(startD);
+    d.setDate(startD.getDate()+i);
+    return d;
+  });
+}
+
+// ─── WEEK HELPERS ─────────────────────────────────────────────────────────
+function getWeekStart(offset=0) {
+  const today = new Date();
+  const dow = (today.getDay()+6)%7; // mon=0
+  const mon = new Date(today);
+  mon.setDate(today.getDate()-dow + offset*7);
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+
+function getMonthDates(offset=0) {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth()+offset);
+  d.setHours(0,0,0,0);
+  const year = d.getFullYear(), month = d.getMonth();
+  const days = new Date(year, month+1, 0).getDate();
+  return Array.from({length:days}, (_,i)=>{ const x=new Date(year,month,i+1); return x; });
+}
+
+// ─── CHART DEFAULTS ───────────────────────────────────────────────────────
+Chart.defaults.color = '#6b6b8a';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const CHART_OPTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1c1c2e', borderColor: '#2a2a3d', borderWidth: 1, titleColor: '#e8e8f0', bodyColor: '#6b6b8a', padding: 10, cornerRadius: 8 } },
+  scales: {
+    x: { grid: { color: 'rgba(42,42,61,0.5)', drawBorder: false }, ticks: { padding: 6 } },
+    y: { grid: { color: 'rgba(42,42,61,0.5)', drawBorder: false }, ticks: { padding: 6 }, beginAtZero: true }
+  }
+};
+
+// ─── WEEKLY CHART ─────────────────────────────────────────────────────────
+let weekChart = null;
+let curWeekOffset = 0;
+
+function buildWeeklyChart(offset=0) {
+  curWeekOffset = offset;
+  const mon = getWeekStart(offset);
+  const dates = dateRange(mon, 7);
+  const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  // dataset per task — show weekday tasks + a combined Sheet bar for Sunday
+  const ALL_DISPLAY_TASKS = ['Lecture','HW','DPP','Sheets(Sun)'];
+  const ALL_DISPLAY_COLORS = ['#60a5fa','#f472b6','#fbbf24','#4ade80'];
+  const datasets = ALL_DISPLAY_TASKS.map((task,i) => ({
+    label: task,
+    data: dates.map(d => {
+      const k = dateToKey(d);
+      const s = getDayStats(k);
+      if(task === 'Sheets(Sun)') {
+        // sum all sheet tasks on Sunday
+        return s.isSunday ? SUNDAY_TASKS.reduce((acc,t) => acc + (s.byTask[t]?.[0]||0), 0) : 0;
+      }
+      return s.byTask[task]?.[0] || 0;
+    }),
+    backgroundColor: ALL_DISPLAY_COLORS[i]+'cc',
+    borderColor: ALL_DISPLAY_COLORS[i],
+    borderWidth: 1,
+    borderRadius: 6,
+  }));
+
+  // range label
+  const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  document.getElementById('weekRange').textContent =
+    `${fmt(mon)} — ${fmt(dates[6])}`;
+
+  const ctx = document.getElementById('weeklyChart').getContext('2d');
+  if(weekChart) weekChart.destroy();
+  weekChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: dayNames, datasets },
+    options: {
+      ...CHART_OPTS,
+      plugins: {
+        ...CHART_OPTS.plugins,
+        legend: { display: true, position: 'top', labels: { color: '#6b6b8a', boxWidth: 10, padding: 14, font: {size:11} } },
+        tooltip: { ...CHART_OPTS.plugins.tooltip, callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} tasks` } }
+      },
+      scales: {
+        x: { ...CHART_OPTS.scales.x, stacked: true },
+        y: { ...CHART_OPTS.scales.y, stacked: true }
+      }
+    }
+  });
+}
+
+function setWeekOffset(offset, btn) {
+  document.querySelectorAll('#weeklyChart').forEach(()=>{});
+  btn.closest('.chart-tabs').querySelectorAll('.chart-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildWeeklyChart(offset);
+}
+
+// ─── MONTHLY CHART ────────────────────────────────────────────────────────
+let monthChart = null;
+
+function buildMonthlyChart(offset=0) {
+  const dates = getMonthDates(offset);
+  const today = todayKey();
+
+  const pcts = dates.map(d => {
+    const k = dateToKey(d);
+    if(k > today) return null;
+    return getDayStats(k).pct;
+  });
+
+  const labels = dates.map(d => d.getDate());
+  const monthName = dates[0].toLocaleDateString('en-US',{month:'long', year:'numeric'});
+  document.getElementById('monthLabel').textContent = monthName;
+
+  // color bars by completion
+  const bgColors = pcts.map(p => {
+    if(p===null) return 'transparent';
+    if(p===100) return '#fbbf24cc';
+    if(p>=75) return '#4ade80cc';
+    if(p>=40) return '#7c6af7cc';
+    return '#2a2a3dcc';
+  });
+
+  const ctx = document.getElementById('monthlyChart').getContext('2d');
+  if(monthChart) monthChart.destroy();
+  monthChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Completion %',
+        data: pcts,
+        backgroundColor: bgColors,
+        borderColor: bgColors.map(c=>c.replace('cc','ff')),
+        borderWidth: 1,
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      ...CHART_OPTS,
+      plugins: {
+        ...CHART_OPTS.plugins,
+        tooltip: { ...CHART_OPTS.plugins.tooltip, callbacks: {
+          label: ctx => ctx.parsed.y === null ? ' No data' : ` ${ctx.parsed.y}% done`
+        }}
+      },
+      scales: {
+        x: { ...CHART_OPTS.scales.x },
+        y: { ...CHART_OPTS.scales.y, max: 100, ticks: { ...CHART_OPTS.scales.y.ticks, callback: v => v+'%' } }
+      }
+    }
+  });
+}
+
+function setMonthOffset(offset, btn) {
+  btn.closest('.chart-tabs').querySelectorAll('.chart-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildMonthlyChart(offset);
+}
+
+// ─── SUMMARY CARDS ────────────────────────────────────────────────────────
+function buildSummary() {
+  const allKeys = Object.keys(checks);
+  const today = todayKey();
+
+  let totalDone=0, totalPossible=0, activeDays=0, perfectDays=0;
+  allKeys.forEach(k => {
+    const s = getDayStats(k);
+    if(s.total===0) return;
+    totalDone += s.done; totalPossible += s.total;
+    if(s.done>0) activeDays++;
+    if(s.pct===100) perfectDays++;
+  });
+
+  // streak
+  let streak=0, d=new Date();
+  while(true){
+    const k=dateToKey(d);
+    const s=getDayStats(k);
+    if(s.done===0 && k!==today) break;
+    if(s.done===0){ d.setDate(d.getDate()-1); break; }
+    streak++; d.setDate(d.getDate()-1);
+  }
+
+  const todayStats = getDayStats(today);
+  const overallPct = totalPossible>0 ? Math.round(totalDone/totalPossible*100) : 0;
+
+  const cards = [
+    { val: streak, label: '🔥 Streak', color: '#fbbf24' },
+    { val: activeDays, label: '📅 Active Days', color: '#7c6af7' },
+    { val: perfectDays, label: '⭐ Perfect Days', color: '#4ade80' },
+    { val: totalDone, label: '✅ Total Tasks', color: '#60a5fa' },
+    { val: overallPct+'%', label: '📈 Overall Rate', color: '#f472b6' },
+  ];
+
+  document.getElementById('summaryGrid').innerHTML = cards.map(c => `
+    <div class="sum-card">
+      <div class="sum-val" style="color:${c.color}">${c.val}</div>
+      <div class="sum-label">${c.label}</div>
+    </div>
+  `).join('');
+}
+
+// ─── SUBJECT BREAKDOWN ────────────────────────────────────────────────────
+function buildBreakdown() {
+  // last 30 days
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dates = Array.from({length:30},(_,i)=>{ const d=new Date(today); d.setDate(today.getDate()-i); return d; });
+
+  const el = document.getElementById('breakdownGrid');
+  if(!subjects.length){ el.innerHTML = '<div class="no-data">No subjects yet. <a href="study-tracker.html">Add some →</a></div>'; return; }
+
+  el.innerHTML = subjects.map(s => {
+    const ts = topics[s] || [];
+    const totals = {}; TASKS.forEach(t=>totals[t]=[0,0]);
+    dates.forEach(d => {
+      const k = dateToKey(d);
+      const dc = checks[k] || {};
+      ts.forEach(t => {
+        TASKS.forEach(task => {
+          totals[task][1]++;
+          if(dc[t.id]?.[task]) totals[task][0]++;
+        });
+      });
+    });
+
+    const rows = TASKS.map((task,i) => {
+      const [done,total] = totals[task];
+      const pct = total>0?Math.round(done/total*100):0;
+      return `<div class="task-row">
+        <span class="task-name">${task}</span>
+        <div class="task-bar-wrap"><div class="task-bar-fill" style="width:${pct}%;background:${TASK_COLORS[i]}"></div></div>
+        <span class="task-pct">${pct}%</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="subject-card">
+      <div class="subject-name">${s}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+// ─── HEATMAP ──────────────────────────────────────────────────────────────
+function buildHeatmap() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayK = dateToKey(today);
+
+  // go back to start of week (Mon) 12 weeks ago
+  const dow = (today.getDay()+6)%7;
+  const start = new Date(today);
+  start.setDate(today.getDate() - dow - 11*7);
+
+  const days = dateRange(start, 12*7);
+  const DAY_LABELS = ['Mon','','Wed','','Fri','','Sun'];
+
+  const tooltip = document.getElementById('hmTooltip');
+
+  let html = ``;
+  // Row labels
+  DAY_LABELS.forEach((label,i) => {
+    // build a column of cells for each week
+    if(i===0) {
+      // header row (month labels) — skip for now, build separately
+    }
+  });
+
+  // Build as rows (Mon–Sun) × 12 cols (weeks)
+  const weeks = [];
+  for(let w=0;w<12;w++) weeks.push(days.slice(w*7,(w+1)*7));
+
+  // Month labels row
+  let monthRow = `<div></div>`; // spacer for row label col
+  weeks.forEach(week => {
+    const first = week[0];
+    const label = first.getDate()<=7 ? first.toLocaleDateString('en-US',{month:'short'}) : '';
+    monthRow += `<div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;padding-bottom:4px;text-align:center">${label}</div>`;
+  });
+
+  let gridHtml = `<div style="display:grid;grid-template-columns:32px repeat(12,1fr);gap:3px;overflow-x:auto">`;
+  gridHtml += monthRow;
+
+  for(let d=0;d<7;d++) {
+    gridHtml += `<div class="hm-label">${DAY_LABELS[d]}</div>`;
+    for(let w=0;w<12;w++) {
+      const date = weeks[w][d];
+      const key = dateToKey(date);
+      const isFuture = key > todayK;
+      const s = isFuture ? {pct:0} : getDayStats(key);
+      const level = isFuture ? 'future' : s.pct===0?'':'l'+Math.min(4,Math.ceil(s.pct/25));
+      const hasData = !isFuture && s.pct>0;
+
+      gridHtml += `<div class="hm-cell ${level} ${isFuture?'future':''}"
+        data-date="${key}" data-pct="${s.pct}" data-done="${isFuture?'':s.done}" data-total="${isFuture?'':s.total}"
+        onmouseenter="showHmTip(event,this)" onmouseleave="hideHmTip()"></div>`;
+    }
+  }
+
+  gridHtml += `</div>`;
+
+  // Legend
+  gridHtml += `<div style="display:flex;align-items:center;gap:6px;margin-top:12px;justify-content:flex-end">
+    <span style="font-size:10px;color:var(--muted)">Less</span>
+    <div class="hm-cell" style="width:12px;height:12px;flex-shrink:0"></div>
+    <div class="hm-cell l1" style="width:12px;height:12px;flex-shrink:0"></div>
+    <div class="hm-cell l2" style="width:12px;height:12px;flex-shrink:0"></div>
+    <div class="hm-cell l3" style="width:12px;height:12px;flex-shrink:0"></div>
+    <div class="hm-cell l4" style="width:12px;height:12px;flex-shrink:0"></div>
+    <span style="font-size:10px;color:var(--muted)">More</span>
+  </div>`;
+
+  document.getElementById('heatmapContainer').innerHTML = gridHtml;
+}
+
+function showHmTip(e, el) {
+  const t = document.getElementById('hmTooltip');
+  const date = el.dataset.date;
+  const pct = el.dataset.pct;
+  const done = el.dataset.done;
+  const total = el.dataset.total;
+  const d = new Date(date+'T00:00:00');
+  const label = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  t.innerHTML = `<strong style="color:var(--text)">${label}</strong><br>${done||0}/${total||0} tasks — ${pct||0}%`;
+  t.style.display = 'block';
+  t.style.left = (e.clientX+12)+'px';
+  t.style.top = (e.clientY-40)+'px';
+}
+
+function hideHmTip() {
+  document.getElementById('hmTooltip').style.display = 'none';
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+buildSummary();
+buildWeeklyChart(0);
+buildMonthlyChart(0);
+buildBreakdown();
+buildHeatmap();
+</script>
+</body>
+</html>

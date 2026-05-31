@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyStreak — Daily Progress</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131c;
+    --surface2: #1c1c2e;
+    --border: #2a2a3d;
+    --accent: #7c6af7;
+    --accent2: #e06bf7;
+    --green: #4ade80;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --gold: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BG grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,247,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,247,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orb {
+    position: fixed;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.15;
+  }
+  .glow-orb.one { background: var(--accent); top: -100px; left: -100px; }
+  .glow-orb.two { background: var(--accent2); bottom: -100px; right: -100px; }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .logo {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .date-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .date-display strong {
+    display: block;
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    transition: border-color 0.3s;
+  }
+
+  .stat-card:hover { border-color: var(--accent); }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* CONTROLS */
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .subject-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .add-btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .add-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* DATE NAV */
+  .date-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .nav-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .week-days {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    overflow-x: auto;
+  }
+
+  .day-pill {
+    flex: 1;
+    min-width: 52px;
+    padding: 8px 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .day-pill.active {
+    border-color: var(--accent);
+    background: rgba(124,106,247,0.15);
+  }
+
+  .day-pill .day-name {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .day-pill .day-num {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  .day-pill .day-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--green);
+    margin: 4px auto 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .day-pill.has-progress .day-dot { opacity: 1; }
+
+  /* GRID TABLE */
+  .grid-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .grid-header {
+    display: grid;
+    grid-template-columns: 200px repeat(4, 1fr) 80px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+  }
+
+  .grid-header-cell {
+    padding: 14px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .grid-header-cell:first-child { text-align: left; }
+
+  .grid-row {
+    display: grid;
+    grid-template-columns: 200px repeat(4, 1fr) 80px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    transition: background 0.2s;
+  }
+
+  .grid-row:last-child { border-bottom: none; }
+  .grid-row:hover { background: rgba(124,106,247,0.04); }
+
+  .row-label {
+    padding: 14px 12px 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .topic-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .topic-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  /* TICK CELL */
+  .tick-cell {
+    padding: 10px 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .tick-btn {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tick-btn:hover { border-color: var(--green); }
+
+  .tick-btn.checked {
+    background: var(--green);
+    border-color: var(--green);
+    animation: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .tick-btn svg {
+    width: 18px; height: 18px;
+    stroke: var(--green);
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke 0.2s;
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+  }
+
+  .tick-btn.checked svg {
+    stroke: #fff;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.25s ease 0.05s, stroke 0.2s;
+  }
+
+  .tick-btn:not(.checked) svg { stroke-dashoffset: 24; }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.3); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+  }
+
+  /* Particles */
+  .particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    border-radius: 50%;
+    animation: particle-fly 0.7s ease-out forwards;
+  }
+
+  @keyframes particle-fly {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+  }
+
+  /* PROGRESS BAR in row */
+  .row-progress {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mini-progress {
+    width: 48px;
+    height: 48px;
+  }
+
+  .mini-progress circle {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  .mini-progress .track { stroke: var(--border); }
+  .mini-progress .fill { stroke: var(--green); transition: stroke-dashoffset 0.5s ease; }
+
+  .percent-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    fill: var(--text);
+    dominant-baseline: middle;
+    text-anchor: middle;
+  }
+
+  /* ADD TOPIC */
+  .add-row {
+    padding: 12px 16px;
+    border-top: 1px dashed var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .add-input {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    width: 200px;
+    transition: border-color 0.2s;
+  }
+
+  .add-input:focus { outline: none; border-color: var(--accent); }
+  .add-input::placeholder { color: var(--muted); }
+
+  .confirm-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .confirm-btn:hover { opacity: 0.85; }
+
+  /* STREAK */
+  .streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 99px;
+    background: rgba(251,191,36,0.12);
+    border: 1px solid rgba(251,191,36,0.3);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  /* CONFETTI BANNER */
+  .banner {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    z-index: 1000;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .banner.show { transform: translateX(-50%) translateY(0); }
+
+  /* MOBILE */
+  @media (max-width: 680px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .grid-header, .grid-row {
+      grid-template-columns: 120px repeat(3, 1fr) 60px;
+    }
+    .topic-num { display: none; }
+    .grid-header-cell, .tick-cell { padding: 8px 4px; }
+  }
+
+  /* ── SUNDAY CARD LAYOUT ───────────────────────────────── */
+  .sun-topic-card {
+    border-bottom: 1px solid var(--border);
+    padding: 16px;
+  }
+  .sun-topic-card:last-child { border-bottom: none; }
+
+  .sun-topic-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .sun-section {
+    margin-bottom: 12px;
+  }
+  .sun-section:last-child { margin-bottom: 0; }
+
+  .sun-section-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--muted); font-weight: 600; margin-bottom: 8px;
+  }
+
+  .sun-tasks-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+
+  .sun-rev-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+
+  .sun-task-item {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+
+  .sun-task-name {
+    font-size: 10px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center; line-height: 1.2;
+    transition: all 0.2s;
+  }
+
+  /* Smaller tick for revision lectures */
+  .tick-btn-sm {
+    width: 30px !important; height: 30px !important;
+    border-radius: 8px !important;
+  }
+  .tick-btn-sm svg { width: 14px !important; height: 14px !important; }
+
+</style>
+</head>
+<body>
+<div class="glow-orb one"></div>
+<div class="glow-orb two"></div>
+
+<div class="wrapper">
+  <header>
+    <div>
+      <div class="logo">StudyStreak ⚡</div>
+      <div style="margin-top:6px;" id="streakBadge"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+      <div style="display:flex;gap:8px">
+        <a href="study-tracker.html" style="padding:8px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;text-decoration:none">📋 Tracker</a>
+        <a href="study-analytics.html" style="padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.2s" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">📊 Analytics</a>
+      </div>
+      <div class="date-display">
+        <strong id="fullDate"></strong>
+        <span id="timeDisplay"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotal" style="color:var(--accent)">0</div>
+      <div class="stat-label">Total Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statLectures" style="color:#60a5fa">0/0</div>
+      <div class="stat-label" data-label="lectures">Lectures</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statHW" style="color:#f472b6">0/0</div>
+      <div class="stat-label" data-label="hw">Homework</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statDPP" style="color:var(--gold)">0/0</div>
+      <div class="stat-label" data-label="dpp">DPP</div>
+    </div>
+  </div>
+
+  <!-- Subject Tabs -->
+  <div class="controls">
+    <div class="subject-tabs" id="subjectTabs"></div>
+    <button class="add-btn" onclick="addSubject()">＋ Subject</button>
+  </div>
+
+  <!-- Date Nav -->
+  <div class="date-nav">
+    <button class="nav-btn" onclick="shiftWeek(-1)">‹</button>
+    <div class="week-days" id="weekDays"></div>
+    <button class="nav-btn" onclick="shiftWeek(1)">›</button>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid-container">
+    <div class="grid-header" style="grid-template-columns:200px repeat(3,1fr) 80px">
+      <div class="grid-header-cell" style="text-align:left">Topic</div>
+      <div class="grid-header-cell">📖 Lecture</div>
+      <div class="grid-header-cell">📝 HW</div>
+      <div class="grid-header-cell">🎯 DPP</div>
+      <div class="grid-header-cell">Done</div>
+    </div>
+    <div id="gridBody"></div>
+    <div class="add-row">
+      <input class="add-input" id="topicInput" placeholder="Add topic…" onkeydown="if(event.key==='Enter')addTopic()">
+      <button class="confirm-btn" onclick="addTopic()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="banner" id="banner"></div>
+
+<script>
+// ─── STATE ─────────────────────────────────────────────────────────────────
+// Mon–Sat: Lecture, HW, DPP  |  Sunday: Sheet ×4 (revision only)
+const WEEKDAY_TASKS = ['Lecture','HW','DPP'];
+const SUNDAY_TASKS  = ['Test', 'Sheet 1','Sheet 2','Sheet 3','Sheet 4','Rev L1','Rev L2','Rev L3','Rev L4','Rev L5','Rev L6','Rev L7','Rev L8','Rev L9','Rev L10','Rev L11','Rev L12','Rev L13','Rev L14','Rev L15','Rev L16','Rev L17','Rev L18','Rev L19','Rev L20','Rev L21'];
+const PARTICLE_COLORS = ['#7c6af7','#e06bf7','#4ade80','#fbbf24','#60a5fa','#f472b6'];
+
+function isSunday(dateKey) {
+  return new Date(dateKey + 'T00:00:00').getDay() === 0;
+}
+function tasksForDate(dateKey) {
+  return isSunday(dateKey) ? SUNDAY_TASKS : WEEKDAY_TASKS;
+}
+
+let state = JSON.parse(localStorage.getItem('studystreak') || '{}');
+// state = { subjects:[], topics:{subjId:[{id,name}]}, checks:{dateKey:{topicId:{task:bool}}} }
+
+if (!state.subjects) state.subjects = ['Physics','Chemistry','Maths'];
+if (!state.topics) state.topics = {};
+if (!state.checks) state.checks = {};
+
+// Ensure default topics
+state.subjects.forEach(s => {
+  if (!state.topics[s]) state.topics[s] = [{id:uid(),name:'Chapter 1'}];
+});
+
+let currentSubject = state.subjects[0];
+let weekOffset = 0; // 0 = current week
+let selectedDate = todayKey();
+
+function uid() { return Math.random().toString(36).slice(2,8); }
+function todayKey() {
+  const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+function save() { localStorage.setItem('studystreak', JSON.stringify(state)); }
+
+// ─── DATE HELPERS ─────────────────────────────────────────────────────────
+function getWeekDates(offset=0) {
+  const today = new Date();
+  const day = today.getDay(); // 0=Sun
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((day+6)%7) + offset*7);
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate()+i);
+    return d;
+  });
+}
+
+function dateToKey(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function formatFull(d) {
+  return d.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────
+function render() {
+  renderHeader();
+  renderTabs();
+  renderWeek();
+  renderGrid();
+  renderStats();
+  renderDayBanner();
+}
+
+function renderDayBanner() {
+  const sunday = isSunday(selectedDate);
+  let el = document.getElementById('dayModeBanner');
+  if(!el) {
+    el = document.createElement('div');
+    el.id = 'dayModeBanner';
+    el.style.cssText = 'text-align:center;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:16px;letter-spacing:0.5px;transition:all 0.3s;';
+    document.querySelector('.grid-container').before(el);
+  }
+  if(sunday) {
+    el.style.background = 'rgba(74,222,128,0.1)';
+    el.style.border = '1px solid rgba(74,222,128,0.3)';
+    el.style.color = '#4ade80';
+    el.textContent = '☀️ Sunday — Revision Day · 4 Sheets per topic';
+  } else {
+    el.style.background = 'rgba(124,106,247,0.07)';
+    el.style.border = '1px solid rgba(124,106,247,0.2)';
+    el.style.color = 'var(--muted)';
+    const dayName = new Date(selectedDate+'T00:00:00').toLocaleDateString('en-US',{weekday:'long'});
+    el.textContent = `📚 ${dayName} — Lecture · HW · DPP`;
+  }
+}
+
+function renderHeader() {
+  const now = new Date();
+  document.getElementById('fullDate').textContent = formatFull(now);
+  document.getElementById('timeDisplay').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+
+  // Streak calc
+  let streak = 0, d = new Date();
+  while(true) {
+    const k = dateToKey(d);
+    const checks = state.checks[k] || {};
+    const topics = state.topics[currentSubject] || [];
+    const hasAny = topics.some(t => tasksForDate(k).some(task => checks[t.id]?.[task]));
+    if(!hasAny && dateToKey(d) !== todayKey()) break;
+    if(!hasAny) { d.setDate(d.getDate()-1); break; }
+    streak++; d.setDate(d.getDate()-1);
+  }
+  const badge = document.getElementById('streakBadge');
+  badge.innerHTML = streak > 0 ? `<span class="streak-badge">🔥 ${streak} day streak</span>` : '';
+}
+
+function renderTabs() {
+  const el = document.getElementById('subjectTabs');
+  el.innerHTML = state.subjects.map(s =>
+    `<button class="tab ${s===currentSubject?'active':''}" onclick="selectSubject('${s}')">${s}</button>`
+  ).join('');
+}
+
+function renderWeek() {
+  const dates = getWeekDates(weekOffset);
+  const el = document.getElementById('weekDays');
+  el.innerHTML = dates.map(d => {
+    const key = dateToKey(d);
+    const isToday = key === todayKey();
+    const isSelected = key === selectedDate;
+    const checks = state.checks[key] || {};
+    const topics = state.topics[currentSubject] || [];
+    const hasProgress = topics.some(t => tasksForDate(key).some(task => checks[t.id]?.[task]));
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const i = (d.getDay()+6)%7;
+    return `<div class="day-pill ${isSelected?'active':''} ${hasProgress?'has-progress':''}" onclick="selectDay('${key}')">
+      <div class="day-name">${days[i]}</div>
+      <div class="day-num" style="${isToday?'color:var(--accent)':''}">${d.getDate()}</div>
+      <div class="day-dot"></div>
+    </div>`;
+  }).join('');
+}
+
+function renderGrid() {
+  const topics = state.topics[currentSubject] || [];
+  const checks = (state.checks[selectedDate] || {});
+  const sunday = isSunday(selectedDate);
+  const el = document.getElementById('gridBody');
+
+  if (sunday) {
+    renderSundayGrid(topics, checks, el);
+    return;
+  }
+
+  // ── Weekday grid (3 cols) ──
+  const TASKS = WEEKDAY_TASKS;
+  const cols = '200px repeat(3, 1fr) 80px';
+  const headerCols = `<div class="grid-header-cell" style="text-align:left">Topic</div>
+     <div class="grid-header-cell">📖 Lecture</div>
+     <div class="grid-header-cell">📝 HW</div>
+     <div class="grid-header-cell">🎯 DPP</div>
+     <div class="grid-header-cell">Done</div>`;
+  document.querySelector('.grid-header').innerHTML = headerCols;
+  document.querySelector('.grid-header').style.gridTemplateColumns = cols;
+  document.querySelector('.grid-header').style.display = 'grid';
+
+  el.innerHTML = topics.map((t,i) => {
+    const taskCells = TASKS.map((task) => {
+      const done = checks[t.id]?.[task] || false;
+      return `<div class="tick-cell">
+        <button class="tick-btn ${done?'checked':''}" onclick="toggleCheck('${t.id}','${task}',this)" title="${task}">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      </div>`;
+    }).join('');
+    const total = TASKS.filter(task => checks[t.id]?.[task]).length;
+    const pct = Math.round(total/TASKS.length*100);
+    const r = 18; const circ = 2*Math.PI*r;
+    const dash = circ - (pct/100)*circ;
+    return `<div class="grid-row" style="grid-template-columns:${cols}">
+      <div class="row-label">
+        <span class="topic-num">${String(i+1).padStart(2,'0')}</span>
+        <span class="topic-name">${t.name}</span>
+      </div>
+      ${taskCells}
+      <div class="row-progress">
+        <svg class="mini-progress" viewBox="0 0 44 44">
+          <circle class="track" cx="22" cy="22" r="${r}"/>
+          <circle class="fill" cx="22" cy="22" r="${r}"
+            stroke-dasharray="${circ}" stroke-dashoffset="${dash}"
+            transform="rotate(-90 22 22)"
+            style="stroke:${pct===100?'var(--gold)':'var(--green)'}"/>
+          <text class="percent-text" x="22" y="22">${pct}%</text>
+        </svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSundayGrid(topics, checks, el) {
+  // Hide normal header — Sunday uses its own layout
+  document.querySelector('.grid-header').style.display = 'none';
+
+  const SHEETS = ['Sheet 1','Sheet 2','Sheet 3','Sheet 4'];
+  const REV_LECTS = Array.from({length:21}, (_,i) => `Rev L${i+1}`);
+
+  el.innerHTML = topics.map((t, ti) => {
+    const c = checks[t.id] || {};
+    const allTasks = SUNDAY_TASKS;
+    const doneCnt = allTasks.filter(task => c[task]).length;
+    const pct = Math.round(doneCnt / allTasks.length * 100);
+    const r = 18; const circ = 2*Math.PI*r;
+    const dash = circ - (pct/100)*circ;
+
+    // Test checkbox
+    const testDone = c['Test'] || false;
+    const testCell = `<div class="sun-section">
+      <div class="sun-section-label">🧪 Test</div>
+      <div class="sun-tasks-row">
+        <div class="sun-task-item">
+          <button class="tick-btn ${testDone?'checked':''}" onclick="toggleCheck('${t.id}','Test',this)" title="Test">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <span class="sun-task-name" style="${testDone?'text-decoration:line-through;color:var(--muted)':''}">Test</span>
+        </div>
+      </div>
+    </div>`;
+
+    // Sheet checkboxes
+    const sheetCells = SHEETS.map(task => {
+      const done = c[task] || false;
+      return `<div class="sun-task-item">
+        <button class="tick-btn ${done?'checked':''}" onclick="toggleCheck('${t.id}','${task}',this)" title="${task}">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <span class="sun-task-name" style="${done?'text-decoration:line-through;color:var(--muted)':''}">${task}</span>
+      </div>`;
+    }).join('');
+
+    // Revision lecture checkboxes
+    const revCells = REV_LECTS.map(task => {
+      const done = c[task] || false;
+      return `<div class="sun-task-item">
+        <button class="tick-btn tick-btn-sm ${done?'checked':''}" onclick="toggleCheck('${t.id}','${task}',this)" title="${task}">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <span class="sun-task-name" style="${done?'text-decoration:line-through;color:var(--muted)':''}">${task}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="sun-topic-card">
+      <div class="sun-topic-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="topic-num">${String(ti+1).padStart(2,'0')}</span>
+          <span class="topic-name">${t.name}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">${doneCnt}/${allTasks.length}</span>
+          <svg class="mini-progress" viewBox="0 0 44 44" style="width:36px;height:36px">
+            <circle class="track" cx="22" cy="22" r="${r}"/>
+            <circle class="fill" cx="22" cy="22" r="${r}"
+              stroke-dasharray="${circ}" stroke-dashoffset="${dash}"
+              transform="rotate(-90 22 22)"
+              style="stroke:${pct===100?'var(--gold)':'var(--green)'}"/>
+            <text class="percent-text" x="22" y="22">${pct}%</text>
+          </svg>
+        </div>
+      </div>
+      ${testCell}
+      <div class="sun-section">
+        <div class="sun-section-label">📋 Sheets</div>
+        <div class="sun-tasks-row">${sheetCells}</div>
+      </div>
+      <div class="sun-section">
+        <div class="sun-section-label">🔁 Revision Lectures</div>
+        <div class="sun-tasks-row sun-rev-grid">${revCells}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+function renderStats() {
+  const dayChecks = state.checks[selectedDate] || {};
+  const topics = state.topics[currentSubject] || [];
+  const sunday = isSunday(selectedDate);
+  const TASKS = sunday ? SUNDAY_TASKS : WEEKDAY_TASKS;
+  let done = 0, total = topics.length * TASKS.length;
+  const byTask = {};
+  TASKS.forEach(t => byTask[t] = [0,0]);
+
+  topics.forEach(t => {
+    TASKS.forEach(task => {
+      byTask[task][1]++;
+      if(dayChecks[t.id]?.[task]) { byTask[task][0]++; done++; }
+    });
+  });
+
+  document.getElementById('statTotal').textContent = `${done}/${total}`;
+  if(sunday) {
+    // Test done/total
+    const testDone = byTask['Test'][0], testTotal = byTask['Test'][1];
+    // Sheets 1-4
+    const sheetDone = ['Sheet 1','Sheet 2','Sheet 3','Sheet 4'].reduce((s,t)=>s+(byTask[t]?.[0]||0),0);
+    const sheetTotal = ['Sheet 1','Sheet 2','Sheet 3','Sheet 4'].reduce((s,t)=>s+(byTask[t]?.[1]||0),0);
+    // Rev Lectures 1-21
+    const revTasks = Array.from({length:21},(_,i)=>`Rev L${i+1}`);
+    const revDone = revTasks.reduce((s,t)=>s+(byTask[t]?.[0]||0),0);
+    const revTotal = revTasks.reduce((s,t)=>s+(byTask[t]?.[1]||0),0);
+    document.getElementById('statLectures').textContent = `${testDone}/${testTotal}`;
+    document.getElementById('statHW').textContent = `${sheetDone}/${sheetTotal}`;
+    document.getElementById('statDPP').textContent = `${revDone}/${revTotal}`;
+    document.querySelector('[data-label="lectures"]').textContent = '🧪 Test';
+    document.querySelector('[data-label="hw"]').textContent = '📋 Sheets';
+    document.querySelector('[data-label="dpp"]').textContent = '🔁 Rev Lects';
+  } else {
+    document.getElementById('statLectures').textContent = `${byTask['Lecture'][0]}/${byTask['Lecture'][1]}`;
+    document.getElementById('statHW').textContent = `${byTask['HW'][0]}/${byTask['HW'][1]}`;
+    document.getElementById('statDPP').textContent = `${byTask['DPP'][0]}/${byTask['DPP'][1]}`;
+    document.querySelector('[data-label="lectures"]').textContent = 'Lectures';
+    document.querySelector('[data-label="hw"]').textContent = 'Homework';
+    document.querySelector('[data-label="dpp"]').textContent = 'DPP';
+  }
+}
+
+// ─── ACTIONS ───────────────────────────────────────────────────────────────
+function toggleCheck(topicId, task, btn) {
+  if(!state.checks[selectedDate]) state.checks[selectedDate] = {};
+  if(!state.checks[selectedDate][topicId]) state.checks[selectedDate][topicId] = {};
+  const current = state.checks[selectedDate][topicId][task] || false;
+  state.checks[selectedDate][topicId][task] = !current;
+  save();
+
+  if(!current) {
+    btn.classList.add('checked');
+    spawnParticles(btn);
+    checkCompletion();
+  } else {
+    btn.classList.remove('checked');
+  }
+
+  renderStats();
+  renderWeek();
+  renderHeader();
+}
+
+function spawnParticles(el) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+
+  for(let i=0;i<12;i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = (i/12)*Math.PI*2;
+    const dist = 40 + Math.random()*40;
+    p.style.cssText = `
+      width:${4+Math.random()*5}px;
+      height:${4+Math.random()*5}px;
+      left:${cx}px; top:${cy}px;
+      background:${PARTICLE_COLORS[Math.floor(Math.random()*PARTICLE_COLORS.length)]};
+      --tx:${Math.cos(angle)*dist}px;
+      --ty:${Math.sin(angle)*dist}px;
+      animation-duration:${0.5+Math.random()*0.3}s;
+    `;
+    document.body.appendChild(p);
+    p.addEventListener('animationend', ()=>p.remove());
+  }
+}
+
+function checkCompletion() {
+  const checks = state.checks[selectedDate] || {};
+  const topics = state.topics[currentSubject] || [];
+  const TASKS = tasksForDate(selectedDate);
+  const all = topics.every(t => TASKS.every(task => checks[t.id]?.[task]));
+  if(all && topics.length > 0) showBanner(isSunday(selectedDate) ? `🎉 Revision done! All sheets complete!` : `🎉 ${currentSubject} — All done today!`);
+}
+
+function showBanner(msg) {
+  const b = document.getElementById('banner');
+  b.textContent = msg;
+  b.classList.add('show');
+  setTimeout(()=>b.classList.remove('show'), 3000);
+}
+
+function selectSubject(s) {
+  currentSubject = s;
+  render();
+}
+
+function selectDay(key) {
+  selectedDate = key;
+  renderWeek();
+  renderGrid();
+  renderStats();
+  renderDayBanner();
+}
+
+function shiftWeek(dir) {
+  weekOffset += dir;
+  renderWeek();
+}
+
+function addTopic() {
+  const input = document.getElementById('topicInput');
+  const name = input.value.trim();
+  if(!name) return;
+  if(!state.topics[currentSubject]) state.topics[currentSubject] = [];
+  state.topics[currentSubject].push({id:uid(), name});
+  input.value = '';
+  save();
+  renderGrid();
+  renderStats();
+}
+
+function addSubject() {
+  const name = prompt('Subject name:');
+  if(!name || !name.trim()) return;
+  const s = name.trim();
+  if(state.subjects.includes(s)) return;
+  state.subjects.push(s);
+  state.topics[s] = [{id:uid(), name:'Topic 1'}];
+  currentSubject = s;
+  save();
+  render();
+}
+
+// ─── CLOCK TICK ────────────────────────────────────────────────────────────
+setInterval(() => {
+  const now = new Date();
+  const el = document.getElementById('timeDisplay');
+  if(el) el.textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}, 30000);
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
